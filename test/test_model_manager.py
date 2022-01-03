@@ -33,13 +33,15 @@ list_label = [
 #     transform=data_transform)
 # dataloader = DataLoader(dataset=dataset)
 
-dataloader, label_num_dict = gen_dataloader(
+dataloader, data_descriptions = gen_dataloader(
     data_dirs=list_dir, 
     labels=list_label, 
     split=True, 
     test_size=0.2)
 
-print(label_num_dict)
+print(dataloader.dataset.label_idx_dict)
+print(data_descriptions)
+class_num = data_descriptions["class_num"]
 # -----------------------------------------------
 
 if True:
@@ -47,7 +49,7 @@ if True:
         d_params={
             "dropout_feature": 0.3,
             "dropout_classifier": 0.3,
-            "class_num": len(label_num_dict.keys())})
+            "class_num": class_num})
 
     optimizer = optim.SGD(
         params=model.parameters(), 
@@ -57,31 +59,33 @@ if True:
 
     criterion = nn.CrossEntropyLoss()
 
-    mm = Manager(model=model, label_num_dict=label_num_dict)
+    mm = Manager(model=model)
     mm.train(
         num_epochs=30, 
         dataloader=dataloader, 
-        auto_save=False,
+        auto_save=True,
         print_epoch_step=int(10))
 
     pprint(mm.training_result)
 
-    mm.save_weight(fname="test_{}".format(datetime.now().strftime('%Y%m%d%H%M%S')))
+    mm.save_model_info(dir="test/", fname="{}_test_{}".format(
+        model.model_descriptions()["name"],
+        datetime.now().strftime('%Y%m%d%H%M%S')))
 
 if False:
     mm_2 = Manager(
         model=LW60(d_params={
             "dropout_feature": 0.3,
             "dropout_classifier": 0.3,
-            "class_num": len(label_num_dict.keys())}),
-        label_num_dict=label_num_dict)
+            "class_num": class_num}))
 
-    mm_2.load_weight(fname="test_20211229165625.pth")
+    mm_2.load_model_info(fname="test/LW60_test_20220103125553.pth")
 
     pred_label = mm_2.predict("./test/test_imgs/img/bike/bike_01.jpg", pos=False)
     print("pred_label: {}".format(pred_label))
 
     pred_pos = mm_2.predict("./test/test_imgs/img/bike/bike_01.jpg", pos=True)
     print("pred_pos: {}".format(pred_pos))
+    print(mm_2.model.label_idx_dict)
 
     

@@ -17,23 +17,21 @@ RANDOM_SEED = ConfDataloader.RANDOM_SEED
 
 class DataFile():
     def __init__(self, dirs, labels, shuffle=True, split=True, test_size=0.2):
-        self.d_label_num = self.label_num(labels=labels)
+        dirs = [str(d) for d in dirs]
+        labels = [str(l) for l in labels]
         self.l_fpath, self.l_label = self.datafile_list(dirs=dirs, labels=labels)
+        self.uq_labels = set(labels)
         self.shuffle = shuffle
         self.split = split
         self.test_size = test_size
         return None
     
-    def label_num(self, labels):
-        return dict([(str(l), i) for i, l in enumerate(set(labels))])
+    def unique_labels(self):
+        return self.uq_labels
     
-    def get_label_num_dict(self):
-        return self.d_label_num
-    
-    def conv_label(self, l):
-        if l not in self.d_label_num.keys():
-            raise ValueError("Label Error: label {} is not in data".format(l))
-        return self.d_label_num[str(l)]
+    def data_num_per_class(self):
+        l, counts = np.unique(self.l_label, return_counts=True)
+        return dict([(l, c) for l, c in zip(l, counts)])
     
     def datafile_list(self, dirs, labels):
         l_fpath = list()
@@ -43,7 +41,7 @@ class DataFile():
                 if not os.path.splitext(fname)[-1] in TARGET_EXT:
                     continue
                 l_fpath.append(os.path.abspath(os.path.join(dir, fname)))
-                l_label.append(self.conv_label(label))
+                l_label.append(label)
         return l_fpath, l_label
     
     def shuffle_data(self):
@@ -68,14 +66,33 @@ class DataFile():
 
 
 class Dataset(data.Dataset):
-    def __init__(self, x_train, y_train, x_test, y_test, transform):
+    def __init__(self, x_train, y_train, x_test, y_test, labels, transform):
         self.x_train = x_train
         self.y_train = y_train
         self.x_test = x_test
         self.y_test = y_test
         self.transform = transform
         self.mode = "train"
+        self.label_idx_dict, self.uq_labels = self.gen_label_idx_dict(labels=labels)
         return None
+    
+    def gen_label_idx_dict(self, labels):
+        uq_labels = set(labels)
+        label_idx_dict = dict([(str(label), i) for i, label in enumerate(uq_labels)])
+        return label_idx_dict, uq_labels
+    
+    def data_num(self):
+        d_count = dict()
+        for tp in [("train", self.y_train), ("test", self.y_test)]:
+            l, counts = np.unique(tp[1], return_counts=True)
+            d_count[tp[0]] = dict([(l, c) for l, c in zip(l, counts)])
+        return d_count
+    
+    def label_idx2label(self, label_index):
+        for k, v in self.label_idx_dict.items():
+            if int(v) == int(label_index):
+                return k
+        raise Exception(f"Label_index error: {label_index} is not included in label_idx_dict")
     
     def __len__(self):
         if self.mode == "train":
@@ -91,8 +108,17 @@ class Dataset(data.Dataset):
             img = Image.open(self.x_test[index])
             label = self.y_test[index]
         x = self.transform(img, self.mode)
-        y = torch.tensor(label, dtype=torch.long)
+        y = torch.tensor(self.label_idx_dict[label], dtype=torch.long)
         return x, y
+    
+    def get_filename_label(self, index):
+        if self.mode == "train":
+            fn = self.x_train[index]
+            l_idx = self.y_train[index]
+        else:
+            fn = self.x_test[index]
+            l_idx = self.y_test[index]
+        return fn, l_idx
     
     def get_mode(self):
         return self.mode
@@ -141,7 +167,7 @@ class DataLoader(data.DataLoader):
         else:
             self.dataset.set_mode(mode="train")
         return self
-    
+
     def get_mode(self):
         return self.dataset.get_mode()
     
@@ -157,15 +183,21 @@ class DataLoader(data.DataLoader):
 def gen_dataloader(data_dirs, labels, split=True, test_size=0.2):
     data_file = DataFile(dirs=data_dirs, labels=labels, split=split, test_size=test_size)
     f_train, f_test, l_train, l_test = data_file.data()
-    label_num_dict = data_file.get_label_num_dict()
+    uq_labels = data_file.unique_labels()
     data_transform = DataTransform(transform_param=TransformParam)
     dataset = Dataset(
         x_train=f_train, 
         y_train=l_train, 
         x_test=f_test, 
-        y_test=l_test, 
+        y_test=l_test,
+        labels=uq_labels,
         transform=data_transform)
-    return DataLoader(dataset=dataset), label_num_dict
+    deta_descriptions = {
+        "class": uq_labels,
+        "class_num": len(uq_labels),
+        "data_num": dataset.data_num()
+    }
+    return DataLoader(dataset=dataset), deta_descriptions
 
 def gen_transform():
     return DataTransform(transform_param=TransformParam)

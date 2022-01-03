@@ -17,7 +17,13 @@ class ConfOptimizer():
     WEIGHT_DECAY = 1e-5
 
 
+
 class TransformParam():
-    resize = 60
-    color_mean = [0.5, 0.5, 0.5]
-    color_std = [0.5, 0.5, 0.5]
+    resize = 28
+    color_mean = [0.5]
+    color_std = [0.5]
+
+# class TransformParam():
+#     resize = 60
+#     color_mean = [0.5, 0.5, 0.5]
+#     color_std = [0.5, 0.5, 0.5]
