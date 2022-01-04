@@ -154,6 +154,9 @@ class DataTransform():
 class DataLoader(data.DataLoader):
     def __init__(self, dataset, batch_size=BATCH_SIZE, shuffle=SHUFFLE, drop_last=DROP_LAST):
         self.dataset = dataset
+        self.batch_size = batch_size
+        self.shuffle = shuffle
+        self.drop_last = drop_last
         super().__init__(
             self.dataset, 
             batch_size=batch_size, 
@@ -198,6 +201,7 @@ def gen_dataloader(data_dirs, labels, split=True, test_size=0.2):
         "data_num": dataset.data_num()
     }
     return DataLoader(dataset=dataset), deta_descriptions
+
 
 def gen_transform():
     return DataTransform(transform_param=TransformParam)

@@ -1,5 +1,5 @@
 class ConfDataloader():
-    BATCH_SIZE = 2
+    BATCH_SIZE = 4
     SHUFFLE = True
     DROP_LAST = True
     TARGET_EXT = [".jpg", ".jpeg"]

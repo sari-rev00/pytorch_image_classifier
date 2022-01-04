@@ -40,6 +40,9 @@ class Manager():
             auto_save=True,
             print_epoch_step=None):
         self.model.label_idx_dict = dataloader.dataset.label_idx_dict
+        self.batch_size = dataloader.batch_size
+        self.shuffle = dataloader.shuffle
+        self.drop_last = dataloader.drop_last
         if not optimizer:
             optimizer = default_optimizer(self.model)
         if not criterion:
@@ -58,9 +61,10 @@ class Manager():
             "scores": list()}
         result["label_idx_dict"] = self.model.label_idx_dict
         best_loss = None
-        print("Training: {} {}\n".format(
+        print("Training: {} {}".format(
             model_desc["name"], 
             dt_start.strftime('%Y%m%d%H%M%S')))
+        print(f"batch size: {self.batch_size}\n")
         for ep in range(1, num_epochs +1):
             if (ep % print_epoch_step) == 0:
                 print("Epoch:{}/{} ============".format(ep, num_epochs))
@@ -121,6 +125,10 @@ class Manager():
             os.mkdir(SAVE_DIR_BASE + dir)
         dict_info = {
             "training_result": self.training_result,
+            "dataloader": {
+                "batch_size": self.batch_size,
+                "shuffle": self.shuffle,
+                "drop_last": self.drop_last},
             "optimizer": {
                 "learning_rate": ConfOptimizer.LEARNING_RATE,
                 "momentum": ConfOptimizer.MOMENTUM,
