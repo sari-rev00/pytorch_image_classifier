@@ -1,3 +1,6 @@
+/train_inception_classifier.ipynb
+
 .ipynb_checkpoints/
 __pycache__/
 /sample/
+/test_img_size60/

@@ -203,5 +203,29 @@ def gen_dataloader(data_dirs, labels, split=True, test_size=0.2):
     return DataLoader(dataset=dataset), deta_descriptions
 
 
+def gen_dataloader_with_specified_train_val_data(
+        train_data_dir, train_labels, 
+        val_data_dir, val_labels):
+    train_data_file = DataFile(dirs=train_data_dir, labels=train_labels, split=False)
+    f_train, l_train = train_data_file.data()
+    uq_labels = train_data_file.unique_labels()
+    val_data_file = DataFile(dirs=val_data_dir, labels=val_labels, split=False)
+    f_test, l_test = val_data_file.data()
+    data_transform = DataTransform(transform_param=TransformParam)
+    dataset = Dataset(
+        x_train=f_train, 
+        y_train=l_train, 
+        x_test=f_test, 
+        y_test=l_test,
+        labels=uq_labels,
+        transform=data_transform)
+    deta_descriptions = {
+        "class": uq_labels,
+        "class_num": len(uq_labels),
+        "data_num": dataset.data_num()
+    }
+    return DataLoader(dataset=dataset), deta_descriptions
+
+
 def gen_transform():
     return DataTransform(transform_param=TransformParam)
