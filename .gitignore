@@ -1,4 +1,5 @@
-/train_inception_classifier.ipynb
+/train_Inception60_classifier.ipynb
+/train_LW60_classifier.ipynb
 
 .ipynb_checkpoints/
 __pycache__/

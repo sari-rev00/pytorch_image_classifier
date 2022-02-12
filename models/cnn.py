@@ -167,24 +167,27 @@ class LW60(CnnModelBase):
         self.features = nn.Sequential(
             # input: 3x60x60
             nn.Conv2d(3, 32, kernel_size=5, padding=2),
+            nn.BatchNorm2d(32, eps=1e-5, momentum=0.1),
             nn.ReLU(True),
             nn.MaxPool2d(2),
             nn.Conv2d(32, 64, kernel_size=5, padding=2),
+            nn.BatchNorm2d(64, eps=1e-5, momentum=0.1),
             nn.ReLU(True),
             nn.MaxPool2d(2),
             nn.Conv2d(64, 64, kernel_size=5, padding=2),
+            nn.BatchNorm2d(64, eps=1e-5, momentum=0.1),
             nn.ReLU(True),
             nn.MaxPool2d(3),
             nn.Dropout2d(p=v_params.dropout_feature))
             # output: 64x5x5
         self.classifier = nn.Sequential(
-            nn.Linear(64*5*5, 64*5*5, bias=True),
+            nn.Linear(64*5*5, 400, bias=True),
             nn.ReLU(True),
             nn.Dropout(p=v_params.dropout_classifier),
-            nn.Linear(64*5*5, 64*5*5, bias=True),
+            nn.Linear(400, 400, bias=True),
             nn.ReLU(True),
             nn.Dropout(p=v_params.dropout_classifier),
-            nn.Linear(64*5*5, v_params.class_num, bias=True))
+            nn.Linear(400, v_params.class_num, bias=True))
         return None
      
     def forward(self, x):

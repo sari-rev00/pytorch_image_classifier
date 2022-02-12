@@ -9,6 +9,10 @@ class ConfDataloader():
 class ConfManager():
     ACC_TH = 0.98
     SAVE_DIR_BASE = "./weight_data/"
+    FIG_SAVE_DIR = "./result/"
+    FIG_COLOR_TRAIN = "deepskyblue"
+    FIG_COLOR_TEST = "tomato"
+    ROUND_DIGIT = 4
 
 
 class ConfOptimizer():

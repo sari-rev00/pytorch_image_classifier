@@ -19,10 +19,15 @@ from config.config import ConfManager, ConfOptimizer, TransformParam
 
 ACC_TH = ConfManager.ACC_TH
 SAVE_DIR_BASE = ConfManager.SAVE_DIR_BASE
-DEFAULT_SAVE_DIR = "./result/"
-COLOR_TRAIN = "deepskyblue"
-COLOR_TEST = "tomato"
-ROUND_DIGIT = 4
+FIG_SAVE_DIR = ConfManager.FIG_SAVE_DIR
+FIG_COLOR_TRAIN = ConfManager.FIG_COLOR_TRAIN
+FIG_COLOR_TEST = ConfManager.FIG_COLOR_TEST
+ROUND_DIGIT = ConfManager.ROUND_DIGIT
+
+
+def round_with_floor(num, digit):
+    floor = 10 ** (-1 * digit)
+    return round(num, digit) if floor < num else floor
 
 class Manager():
     def __init__(self, model):
@@ -77,8 +82,10 @@ class Manager():
                     self.model.eval()
                 ep_loss = float(0)
                 ep_corrects = int(0)
+                ep_data_num = int(0)
                 dataloader.set_mode(mode=mode)
                 for inputs, labels in dataloader:
+                    ep_data_num += dataloader.batch_size
                     optimizer.zero_grad()
                     with torch.set_grad_enabled(mode == "train"):
                         outputs = self.model(inputs)
@@ -89,8 +96,10 @@ class Manager():
                             optimizer.step()
                     ep_loss += loss.item() * inputs.size(0)
                     ep_corrects += torch.sum(preds == labels.data).item()
-                ep_loss_per_data = round(ep_loss / dataloader.data_num(), ROUND_DIGIT)
-                ep_acc = round(ep_corrects / dataloader.data_num(), ROUND_DIGIT)
+                ep_loss_per_data = round_with_floor(
+                    num=ep_loss / ep_data_num, 
+                    digit=ROUND_DIGIT)
+                ep_acc = round(ep_corrects / ep_data_num, ROUND_DIGIT)
                 if mode == "train":
                     d_score["train_loss"] = ep_loss_per_data
                     d_score["train_acc"] = ep_acc
@@ -171,12 +180,12 @@ class Manager():
                     return str(k)
             raise Exception(f"Error: predicted label {pred_label} is not included in label_idx_dict.")
         
-    def make_result_fig(self, save=False, save_dir=DEFAULT_SAVE_DIR):
+    def make_result_fig(self, save=False, save_dir=FIG_SAVE_DIR):
         if not self.training_result:
             return None
     
-        color_train = COLOR_TRAIN
-        color_test = COLOR_TEST
+        color_train = FIG_COLOR_TRAIN
+        color_test = FIG_COLOR_TEST
 
         df = pd.DataFrame(self.training_result["scores"])
         ep = df["epoch"].astype(int).values.tolist()
