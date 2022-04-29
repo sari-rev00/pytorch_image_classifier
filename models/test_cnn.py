@@ -10,9 +10,9 @@ import torch
 os.chdir('..')
 sys.path.append('.')
 
-from models.cnn import LW60, MNIST, Inception60
+from models.cnn import LW60, MNIST, Inception60, Fire, SqueezedNet60
 
-if True:
+if False:
     print("\nLW60")
     model_lm60 = LW60(d_params={
         "dropout_feature": 0.3,
@@ -158,3 +158,63 @@ if False:
     output_tensor = model_Inception60.forward(test_tensor)
     print(f"    output data (image) shape: {output_tensor.shape}")
     assert output_tensor.shape == torch.Size([1, 3])
+
+
+def dimtester(t_in_dim, t_out_dim, model, model_name):
+    input_tensor = torch.rand(t_in_dim)
+    output_tensor = model(input_tensor)
+    print("    {} :: output tensor size: {}, expected: {}".format(
+        model_name,
+        output_tensor.size(),
+        torch.Size(t_out_dim)))
+    assert output_tensor.size() == torch.Size(t_out_dim)
+
+
+def test_Fire():
+    print("\n{} ==============".format(sys._getframe().f_code.co_name))
+    f_dim = [64, 8, 64, 64]
+    fire = Fire(
+        in_ch=f_dim[0], 
+        sq_ch=f_dim[1], 
+        exp1x1_ch=f_dim[2], 
+        exp3x3_ch=f_dim[3])
+    
+    t_in_dim = [1, 64, 60, 60]
+    t_out_dim = [t_in_dim[0], f_dim[2] + f_dim[3], t_in_dim[2], t_in_dim[3]]
+
+    dimtester(t_in_dim, t_out_dim, fire, "forwarding")
+    return None
+
+
+def test_SqueezedNet60():
+    print("\n{} ==============".format(sys._getframe().f_code.co_name))
+    class_num = 3
+
+    d_params = {
+        "dropout": 0.3,
+        "class_num": class_num}
+    sq = SqueezedNet60(d_params=d_params)
+
+    print("    desc: {}".format(sq.model_descriptions()))
+    
+    # features ----------------------------------------------------------
+    t_in_dim = [1, 3, 60, 60]
+    t_out_dim = [1, 512, 5, 5]
+    dimtester(t_in_dim, t_out_dim, sq.features, "features")
+
+    # classifier ---------------------------------------------------------
+    t_in_dim = [1, 512, 5, 5]
+    t_out_dim = [1, class_num, 1, 1]
+    dimtester(t_in_dim, t_out_dim, sq.classifier, "classifier")
+
+    # forwarding ----------------------------------------------------------
+    t_in_dim = [1, 3, 60, 60]
+    t_out_dim = [1, 3]
+    dimtester(t_in_dim, t_out_dim, sq, "forwarding")
+
+    return None
+
+
+if __name__ == '__main__':
+    test_Fire()
+    test_SqueezedNet60()

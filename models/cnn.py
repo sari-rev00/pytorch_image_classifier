@@ -321,3 +321,122 @@ class Inception60(CnnModelBase):
             "input_size": int(60),
             "input_channel": int(3),
             "params": self.d_params}
+
+
+class Fire(nn.Module):
+    def __init__(
+            self, 
+            in_ch, 
+            sq_ch, 
+            exp1x1_ch, 
+            exp3x3_ch):
+        super().__init__()
+        self.squeeze = nn.Conv2d(in_ch, sq_ch, kernel_size=1)
+        self.squeeze_activation = nn.ReLU(inplace=True)
+        self.expand1x1 = nn.Conv2d(sq_ch, exp1x1_ch, kernel_size=1)
+        self.expand1x1_activation = nn.ReLU(inplace=True)
+        self.expand3x3 = nn.Conv2d(sq_ch, exp3x3_ch, kernel_size=3, padding=1)
+        self.expand3x3_activation = nn.ReLU(inplace=True)
+        self.params = {
+            "in_ch": in_ch,
+            "sq_ch": sq_ch,
+            "exp1x1_ch": exp1x1_ch,
+            "exp3x3_ch": exp3x3_ch}
+        return None
+    
+    def forward(self, x):
+        x = self.squeeze(x)
+        x = self.squeeze_activation(x)
+        branch1 = self.expand1x1(x)
+        branch1 = self.expand1x1_activation(branch1)
+        branch2 = self.expand3x3(x)
+        branch2 = self.expand3x3_activation(branch2)
+        return torch.cat([branch1, branch2], 1)
+    
+    def model_descriptions(self):
+        return {
+            "name": "Fire",
+            "input_size": "not specified",
+            "input_channel": "not specified",
+            "params": self.params}
+
+
+class SqueezedNet60(CnnModelBase):
+    class ParamValidator(BaseModel):
+        dropout: float
+        class_num: int
+
+        @validator('dropout')
+        def check_dropout_range(cls, v):
+            if not (0 <= v < 1.0):
+                raise ValueError("range error: {}".format(v))
+            return v
+        
+        @validator('class_num')
+        def check_class_num(cls, v):
+            if not (2 <= v <=10):
+                raise ValueError("range error: {}".format(v))
+            return v
+
+    def __init__(self, d_params=None, model_info_fname=None, init_weights=True):
+        super().__init__(
+            validator=self.ParamValidator,
+            d_params=d_params, 
+            model_info_fname=model_info_fname, 
+            init_weights=False)
+        if init_weights:
+            self._initialize_weights()
+        return None
+    
+    def prepare_cnn(self, v_params):    
+        self.features = nn.Sequential(
+            # in: 3x60x60
+            nn.Conv2d(3, 96, kernel_size=5, padding=2),
+            nn.ReLU(True),
+            nn.MaxPool2d(2),
+            # 96x30x30
+            Fire(96, 16, 64, 64),
+            Fire(128, 16, 64, 64),
+            Fire(128, 32, 128, 128),
+            nn.MaxPool2d(2),
+            # 256x15x15
+            Fire(256, 32, 128, 128),
+            Fire(256, 48, 192, 192),
+            Fire(384, 48, 192, 192),
+            Fire(384, 64, 256, 256),
+            nn.MaxPool2d(3),
+            # 512x5x5
+            Fire(512, 64, 256, 256),
+            nn.Dropout2d(p=v_params.dropout))
+            # out: 512x5x5
+        self.classifier = nn.Sequential(
+            # in: 512x5x5
+            nn.Conv2d(512, v_params.class_num, kernel_size=1),
+            nn.ReLU(True),
+            nn.AdaptiveAvgPool2d((1, 1)))
+            # out: v_params.class_numx1x1
+        return None
+    
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return torch.flatten(x, 1)
+    
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                if hasattr(m, "stddev"):
+                    torch.nn.init.normal_(m.weight, std=m.stddev)
+                else:
+                    torch.nn.init.kaiming_uniform_(m.weight)
+                if m.bias is not None:
+                    torch.nn.init.zeros_(m.bias)
+        return None
+    
+    def model_descriptions(self):
+        return {
+            "name": "SqueezedNet60",
+            "input_size": int(60),
+            "input_channel": int(3),
+            "params": self.d_params}
+
