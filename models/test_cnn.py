@@ -10,7 +10,9 @@ import torch
 os.chdir('..')
 sys.path.append('.')
 
-from models.cnn import LW60, MNIST, Inception60, Fire, SqueezedNet60
+from models.cnn import (
+    LW60, SuperLW60, ExstraSuperLW60, UltimateLW60, 
+    MNIST, Inception60, Fire, SqueezedNet60)
 
 if False:
     print("\nLW60")
@@ -170,6 +172,94 @@ def dimtester(t_in_dim, t_out_dim, model, model_name):
     assert output_tensor.size() == torch.Size(t_out_dim)
 
 
+def test_SuperLW60():
+    print("\n{} ==============".format(sys._getframe().f_code.co_name))
+    class_num = 3
+
+    d_params = {
+        "dropout_feature": 0.3,
+        "dropout_classifier": 0.3,
+        "class_num": class_num}
+    model = SuperLW60(d_params=d_params)
+    print("    desc: {}".format(model.model_descriptions()))
+
+    # features ----------------------------------------------------------
+    t_in_dim = [1, 3, 60, 60]
+    t_out_dim = [1, 16, 5, 5]
+    dimtester(t_in_dim, t_out_dim, model.features, "features")
+
+    # classifier ---------------------------------------------------------
+    t_in_dim = [1, 16*5*5]
+    t_out_dim = [1, class_num]
+    dimtester(t_in_dim, t_out_dim, model.classifier, "classifier")
+
+    # forwarding ----------------------------------------------------------
+    t_in_dim = [1, 3, 60, 60]
+    t_out_dim = [1, 3]
+    dimtester(t_in_dim, t_out_dim, model, "forwarding")
+
+    return None
+
+
+def test_ExstraSuperLW60():
+    print("\n{} ==============".format(sys._getframe().f_code.co_name))
+    class_num = 3
+
+    d_params = {
+        "dropout_feature": 0.3,
+        "dropout_classifier": 0.3,
+        "class_num": class_num}
+    model = ExstraSuperLW60(d_params=d_params)
+    print("    desc: {}".format(model.model_descriptions()))
+
+    # features ----------------------------------------------------------
+    t_in_dim = [1, 3, 60, 60]
+    t_out_dim = [1, 8, 5, 5]
+    dimtester(t_in_dim, t_out_dim, model.features, "features")
+
+    # classifier ---------------------------------------------------------
+    t_in_dim = [1, 8*5*5]
+    t_out_dim = [1, class_num]
+    dimtester(t_in_dim, t_out_dim, model.classifier, "classifier")
+
+    # forwarding ----------------------------------------------------------
+    t_in_dim = [1, 3, 60, 60]
+    t_out_dim = [1, 3]
+    dimtester(t_in_dim, t_out_dim, model, "forwarding")
+
+    return None
+
+
+def test_UltimateLW60():
+    print("\n{} ==============".format(sys._getframe().f_code.co_name))
+    class_num = 3
+
+    d_params = {
+        "dropout_feature": 0.3,
+        "dropout_classifier": 0.3,
+        "class_num": class_num}
+    model = UltimateLW60(d_params=d_params)
+    print("    desc: {}".format(model.model_descriptions()))
+
+    # features ----------------------------------------------------------
+    t_in_dim = [1, 3, 60, 60]
+    t_out_dim = [1, 8, 4, 4]
+    dimtester(t_in_dim, t_out_dim, model.features, "features")
+
+    # classifier ---------------------------------------------------------
+    t_in_dim = [1, 8*4*4]
+    t_out_dim = [1, class_num]
+    dimtester(t_in_dim, t_out_dim, model.classifier, "classifier")
+
+    # forwarding ----------------------------------------------------------
+    t_in_dim = [1, 3, 60, 60]
+    t_out_dim = [1, 3]
+    dimtester(t_in_dim, t_out_dim, model, "forwarding")
+
+    return None
+
+
+
 def test_Fire():
     print("\n{} ==============".format(sys._getframe().f_code.co_name))
     f_dim = [64, 8, 64, 64]
@@ -216,5 +306,8 @@ def test_SqueezedNet60():
 
 
 if __name__ == '__main__':
-    test_Fire()
-    test_SqueezedNet60()
+    test_SuperLW60()
+    test_ExstraSuperLW60()
+    test_UltimateLW60()
+    # test_Fire()
+    # test_SqueezedNet60()

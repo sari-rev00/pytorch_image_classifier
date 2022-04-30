@@ -204,6 +204,125 @@ class LW60(CnnModelBase):
             "params": self.d_params}
 
 
+class SuperLW60(LW60):    
+    def prepare_cnn(self, v_params):
+        self.features = nn.Sequential(
+            # input: 3x60x60
+            nn.Conv2d(3, 16, kernel_size=5, padding=2),
+            nn.BatchNorm2d(16, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            nn.MaxPool2d(2),
+            nn.Conv2d(16, 16, kernel_size=5, padding=2),
+            nn.BatchNorm2d(16, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            nn.MaxPool2d(2),
+            nn.Conv2d(16, 16, kernel_size=5, padding=2),
+            nn.BatchNorm2d(16, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            nn.MaxPool2d(3),
+            nn.Dropout2d(p=v_params.dropout_feature))
+            # output: 16x5x5
+        self.classifier = nn.Sequential(
+            nn.Linear(16*5*5, 64, bias=True),
+            nn.ReLU(True),
+            nn.Dropout(p=v_params.dropout_classifier),
+            nn.Linear(64, v_params.class_num, bias=True))
+        return None
+     
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(-1, 16*5*5)
+        x = self.classifier(x)
+        return x
+    
+    def model_descriptions(self):
+        return {
+            "name": "SuperLW60",
+            "input_size": int(60),
+            "input_channel": int(3),
+            "params": self.d_params}
+
+
+class ExstraSuperLW60(LW60):
+    def prepare_cnn(self, v_params):
+        self.features = nn.Sequential(
+            # input: 3x60x60
+            nn.Conv2d(3, 8, kernel_size=5, padding=2),
+            nn.BatchNorm2d(8, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            nn.MaxPool2d(2),
+            nn.Conv2d(8, 8, kernel_size=5, padding=2),
+            nn.BatchNorm2d(8, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            nn.MaxPool2d(2),
+            nn.Conv2d(8, 8, kernel_size=5, padding=2),
+            nn.BatchNorm2d(8, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            nn.MaxPool2d(3),
+            nn.Dropout2d(p=v_params.dropout_feature))
+            # output: 8x5x5
+        self.classifier = nn.Sequential(
+            nn.Linear(8*5*5, 32, bias=True),
+            nn.ReLU(True),
+            nn.Dropout(p=v_params.dropout_classifier),
+            nn.Linear(32, v_params.class_num, bias=True))
+        return None
+     
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(-1, 8*5*5)
+        x = self.classifier(x)
+        return x
+    
+    def model_descriptions(self):
+        return {
+            "name": "ExstraSuperLW60",
+            "input_size": int(60),
+            "input_channel": int(3),
+            "params": self.d_params}
+
+
+class UltimateLW60(LW60):
+    def prepare_cnn(self, v_params):
+        self.features = nn.Sequential(
+            # input: 3x60x60
+            nn.Conv2d(3, 8, kernel_size=5),
+            nn.BatchNorm2d(8, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            # -x56x56
+            nn.MaxPool2d(2),
+            # -x28x28
+            nn.Conv2d(8, 8, kernel_size=5),
+            nn.BatchNorm2d(8, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            # -x24x24
+            nn.MaxPool2d(2),
+            # -x12x12
+            nn.Conv2d(8, 8, kernel_size=5),
+            nn.BatchNorm2d(8, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            # -x8x8
+            nn.MaxPool2d(2),
+            nn.Dropout2d(p=v_params.dropout_feature))
+            # output: 8x4x4
+        self.classifier = nn.Sequential(
+            nn.Linear(8*4*4, v_params.class_num, bias=True))
+        return None
+     
+    def forward(self, x):
+        x = self.features(x)
+        x = x.view(-1, 8*4*4)
+        x = self.classifier(x)
+        return x
+    
+    def model_descriptions(self):
+        return {
+            "name": "UltimateLW60",
+            "input_size": int(60),
+            "input_channel": int(3),
+            "params": self.d_params}
+
+
 class Inception60(CnnModelBase):
     class ParamValidator(BaseModel):
         dropout_basic_conv: float
@@ -331,12 +450,18 @@ class Fire(nn.Module):
             exp1x1_ch, 
             exp3x3_ch):
         super().__init__()
-        self.squeeze = nn.Conv2d(in_ch, sq_ch, kernel_size=1)
-        self.squeeze_activation = nn.ReLU(inplace=True)
-        self.expand1x1 = nn.Conv2d(sq_ch, exp1x1_ch, kernel_size=1)
-        self.expand1x1_activation = nn.ReLU(inplace=True)
-        self.expand3x3 = nn.Conv2d(sq_ch, exp3x3_ch, kernel_size=3, padding=1)
-        self.expand3x3_activation = nn.ReLU(inplace=True)
+        self.squeeze = nn.Sequential(
+            nn.Conv2d(in_ch, sq_ch, kernel_size=1),
+            nn.BatchNorm2d(sq_ch, eps=1e-5, momentum=0.1),
+            nn.ReLU(inplace=True))
+        self.expand1x1 = nn.Sequential(
+            nn.Conv2d(sq_ch, exp1x1_ch, kernel_size=1),
+            nn.BatchNorm2d(exp1x1_ch, eps=1e-5, momentum=0.1),
+            nn.ReLU(inplace=True))
+        self.expand3x3 = nn.Sequential(
+            nn.Conv2d(sq_ch, exp3x3_ch, kernel_size=3, padding=1),
+            nn.BatchNorm2d(exp3x3_ch, eps=1e-5, momentum=0.1),
+            nn.ReLU(inplace=True))
         self.params = {
             "in_ch": in_ch,
             "sq_ch": sq_ch,
@@ -346,11 +471,8 @@ class Fire(nn.Module):
     
     def forward(self, x):
         x = self.squeeze(x)
-        x = self.squeeze_activation(x)
         branch1 = self.expand1x1(x)
-        branch1 = self.expand1x1_activation(branch1)
         branch2 = self.expand3x3(x)
-        branch2 = self.expand3x3_activation(branch2)
         return torch.cat([branch1, branch2], 1)
     
     def model_descriptions(self):
@@ -409,9 +531,11 @@ class SqueezedNet60(CnnModelBase):
             Fire(512, 64, 256, 256),
             nn.Dropout2d(p=v_params.dropout))
             # out: 512x5x5
+        classifier_conv = nn.Conv2d(512, v_params.class_num, kernel_size=1)
+        classifier_conv.stddev = 0.01
         self.classifier = nn.Sequential(
             # in: 512x5x5
-            nn.Conv2d(512, v_params.class_num, kernel_size=1),
+            classifier_conv,
             nn.ReLU(True),
             nn.AdaptiveAvgPool2d((1, 1)))
             # out: v_params.class_numx1x1
@@ -440,3 +564,85 @@ class SqueezedNet60(CnnModelBase):
             "input_channel": int(3),
             "params": self.d_params}
 
+
+class SqueezedNetLW60(CnnModelBase):
+    class ParamValidator(BaseModel):
+        dropout: float
+        class_num: int
+
+        @validator('dropout')
+        def check_dropout_range(cls, v):
+            if not (0 <= v < 1.0):
+                raise ValueError("range error: {}".format(v))
+            return v
+        
+        @validator('class_num')
+        def check_class_num(cls, v):
+            if not (2 <= v <=10):
+                raise ValueError("range error: {}".format(v))
+            return v
+
+    def __init__(self, d_params=None, model_info_fname=None, init_weights=True):
+        super().__init__(
+            validator=self.ParamValidator,
+            d_params=d_params, 
+            model_info_fname=model_info_fname, 
+            init_weights=False)
+        if init_weights:
+            self._initialize_weights()
+        return None
+    
+    def prepare_cnn(self, v_params):    
+        self.features = nn.Sequential(
+            # in: 3x60x60
+            nn.Conv2d(3, 32, kernel_size=5, padding=2),
+            nn.BatchNorm2d(32, eps=1e-5, momentum=0.1),
+            nn.ReLU(True),
+            nn.MaxPool2d(2),
+            # 32x30x30
+            Fire(32, 4, 16, 16),
+            # Fire(32, 4, 16, 16),
+            Fire(32, 8, 32, 32),
+            nn.MaxPool2d(2),
+            # 64x15x15
+            Fire(64, 8, 32, 32),
+            # Fire(64, 8, 32, 32),
+            Fire(64, 8, 32, 32),
+            Fire(64, 16, 64, 64),
+            nn.MaxPool2d(3),
+            # 128x5x5
+            Fire(128, 16, 64, 64),
+            nn.Dropout2d(p=v_params.dropout))
+            # out: 128x5x5
+        classifier_conv = nn.Conv2d(128, v_params.class_num, kernel_size=1)
+        classifier_conv.stddev = 0.01
+        self.classifier = nn.Sequential(
+            # in: 128x5x5
+            classifier_conv,
+            nn.ReLU(True),
+            nn.AdaptiveAvgPool2d((1, 1)))
+            # out: v_params.class_numx1x1
+        return None
+    
+    def forward(self, x):
+        x = self.features(x)
+        x = self.classifier(x)
+        return torch.flatten(x, 1)
+    
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                if hasattr(m, "stddev"):
+                    torch.nn.init.normal_(m.weight, std=m.stddev)
+                else:
+                    torch.nn.init.kaiming_uniform_(m.weight)
+                if m.bias is not None:
+                    torch.nn.init.zeros_(m.bias)
+        return None
+    
+    def model_descriptions(self):
+        return {
+            "name": "SqueezedNetLW60",
+            "input_size": int(60),
+            "input_channel": int(3),
+            "params": self.d_params}
